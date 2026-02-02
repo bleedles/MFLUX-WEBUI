@@ -70,61 +70,58 @@ def create_output_viewer_tab():
             "gallery_items": [],
         })
 
+        # Search and controls at top
         with gr.Row():
-            with gr.Column(scale=3):
-                # Search and controls
-                with gr.Row():
-                    search_box = gr.Textbox(
-                        label="Search prompts...",
-                        placeholder="Type to search by prompt text",
-                        scale=8
-                    )
-                    refresh_btn = gr.Button(
-                        "Refresh",
-                        variant="secondary",
-                        scale=1
-                    )
+            search_box = gr.Textbox(
+                label="Search prompts...",
+                placeholder="Type to search by prompt text",
+                scale=6
+            )
+            refresh_btn = gr.Button(
+                "🔄 Refresh",
+                variant="secondary",
+                scale=1
+            )
+            load_more_btn = gr.Button(
+                "Load More",
+                variant="secondary",
+                scale=1,
+                elem_id="load-more-btn"
+            )
 
-                # Output count display
-                output_count_display = gr.Markdown("Click **Refresh** to load outputs")
+        # Output count display
+        output_count_display = gr.Markdown("Click **Refresh** to load outputs")
 
-                # Gallery for displaying outputs
+        with gr.Row():
+            # Left: Thumbnail gallery (smaller thumbnails, more columns)
+            with gr.Column(scale=2):
                 output_gallery = gr.Gallery(
-                    label="Generated Outputs",
+                    label="Thumbnails",
                     show_label=False,
                     elem_id="output-viewer-gallery",
-                    columns=4,
-                    rows=3,
+                    columns=5,
+                    rows=4,
                     object_fit="cover",
-                    height=500,
-                    allow_preview=True,
-                    preview=False  # Disabled preview mode to fix loading issues
+                    height=600,
+                    allow_preview=False,
+                    preview=False
                 )
 
-                # Hidden button for triggering load more
-                load_more_btn = gr.Button(
-                    "Load More",
-                    visible=True,
-                    elem_id="load-more-btn",
-                    size="sm"
-                )
-
-            with gr.Column(scale=2):
-                # Selected image details panel
-                gr.Markdown("### Selected Image Details")
-
+            # Right: Selected image and details
+            with gr.Column(scale=3):
+                # Full-size image preview
                 selected_image = gr.Image(
                     label="Selected Image",
                     show_label=False,
-                    height=300,
+                    height=400,
                     interactive=False
                 )
 
-                # Metadata display
+                # Metadata display in a compact layout
                 with gr.Group():
                     prompt_display = gr.Textbox(
                         label="Prompt",
-                        lines=3,
+                        lines=2,
                         interactive=False
                     )
 
@@ -168,12 +165,12 @@ def create_output_viewer_tab():
                 # Action buttons
                 with gr.Row():
                     copy_settings_btn = gr.Button(
-                        "Copy Settings",
+                        "📋 Copy Settings JSON",
                         variant="secondary",
                         size="sm"
                     )
                     delete_btn = gr.Button(
-                        "Delete",
+                        "🗑️ Delete",
                         variant="stop",
                         size="sm"
                     )
@@ -190,7 +187,7 @@ def create_output_viewer_tab():
 
                 # Delete confirmation
                 with gr.Row(visible=False) as delete_confirm_row:
-                    gr.Markdown("Are you sure you want to delete this image?")
+                    gr.Markdown("**Are you sure you want to delete this image?**")
                     confirm_delete_btn = gr.Button("Yes, Delete", variant="stop", size="sm")
                     cancel_delete_btn = gr.Button("Cancel", size="sm")
 
@@ -292,43 +289,39 @@ def create_output_viewer_tab():
         return gallery_items, new_state, count_text
 
     def refresh_outputs(state):
-        """Refresh the output list."""
-        from pathlib import Path
-
+        """Refresh the output list with metadata."""
         search_query = state.get("search_query", "")
 
         try:
-            # Direct file listing for reliability
-            output_dir = Path(__file__).parent.parent.parent / "output"
-
-            if not output_dir.exists():
-                return [], state, "No output directory found"
-
-            # Get image files
-            supported = {'.png', '.jpg', '.jpeg', '.webp'}
-            files = [f for f in output_dir.iterdir() if f.is_file() and f.suffix.lower() in supported]
-            files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-
-            total = len(files)
-
-            # Return file paths directly (simplest format)
-            gallery_items = [str(f) for f in files[:BATCH_SIZE]]
+            # Use manager to get outputs with metadata
+            manager.refresh_cache()
+            gallery_items, metadata_list, total = manager.get_outputs_for_gallery(
+                offset=0,
+                limit=BATCH_SIZE,
+                search_query=search_query,
+                use_thumbnails=True
+            )
 
             new_state = {
                 "offset": len(gallery_items),
                 "total_count": total,
                 "search_query": search_query,
-                "all_metadata": [],
+                "all_metadata": metadata_list,
                 "selected_index": -1,
                 "gallery_items": gallery_items,
             }
 
-            count_text = f"Showing {len(gallery_items)} of {total} outputs"
+            if search_query:
+                count_text = f"Found {total} outputs matching '{search_query}'"
+            else:
+                count_text = f"Showing {len(gallery_items)} of {total} outputs"
 
             return gallery_items, new_state, count_text
 
         except Exception as e:
             print(f"Error refreshing outputs: {e}")
+            import traceback
+            traceback.print_exc()
             return [], state, f"Error: {e}"
 
     def on_gallery_select(evt: gr.SelectData, state):

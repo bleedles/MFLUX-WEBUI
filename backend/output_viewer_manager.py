@@ -153,24 +153,50 @@ class OutputViewerManager:
         metadata = {}
 
         try:
-            # Extract metadata using the existing manager
-            extracted = self.metadata_manager.extract_metadata_from_image(file_path)
-            if extracted:
-                # Map to standard fields
-                metadata = {
-                    "prompt": extracted.get("prompt", extracted.get("mflux_prompt", "")),
-                    "model": extracted.get("model", extracted.get("mflux_model", "")),
-                    "seed": extracted.get("seed", extracted.get("mflux_seed", "")),
-                    "steps": extracted.get("steps", extracted.get("mflux_steps", "")),
-                    "guidance": extracted.get("guidance", extracted.get("mflux_guidance", "")),
-                    "width": extracted.get("width", extracted.get("mflux_width", "")),
-                    "height": extracted.get("height", extracted.get("mflux_height", "")),
-                    "lora_files": extracted.get("lora_files", extracted.get("mflux_lora_files", [])),
-                    "lora_scales": extracted.get("lora_scales", extracted.get("mflux_lora_scales", [])),
-                    "generation_time": extracted.get("generation_time", ""),
-                    "generation_duration": extracted.get("generation_duration", ""),
-                    "low_ram_mode": extracted.get("low_ram_mode", False),
-                }
+            # First, check for companion JSON file (used by z_image, fibo, etc.)
+            json_path = file_path.with_suffix('.json')
+            if json_path.exists():
+                try:
+                    with open(json_path, 'r') as f:
+                        json_data = json.load(f)
+
+                    # Map JSON fields to standard metadata format
+                    metadata = {
+                        "prompt": json_data.get("prompt", ""),
+                        "model": json_data.get("model", ""),
+                        "seed": json_data.get("seed", ""),
+                        "steps": json_data.get("steps", ""),
+                        "guidance": json_data.get("guidance", ""),
+                        "width": json_data.get("width", ""),
+                        "height": json_data.get("height", ""),
+                        "lora_files": json_data.get("lora_paths", []) or [],
+                        "lora_scales": json_data.get("lora_scales", []) or [],
+                        "generation_time": json_data.get("created_at", ""),
+                        "generation_duration": json_data.get("generation_time_seconds", ""),
+                        "negative_prompt": json_data.get("negative_prompt", ""),
+                    }
+                except Exception as e:
+                    print(f"Error reading JSON metadata from {json_path}: {e}")
+
+            # If no JSON or no prompt found, try extracting from image metadata
+            if not metadata.get("prompt"):
+                extracted = self.metadata_manager.extract_metadata_from_image(file_path)
+                if extracted:
+                    # Map to standard fields (merge with existing)
+                    metadata.update({
+                        "prompt": metadata.get("prompt") or extracted.get("prompt", extracted.get("mflux_prompt", "")),
+                        "model": metadata.get("model") or extracted.get("model", extracted.get("mflux_model", "")),
+                        "seed": metadata.get("seed") or extracted.get("seed", extracted.get("mflux_seed", "")),
+                        "steps": metadata.get("steps") or extracted.get("steps", extracted.get("mflux_steps", "")),
+                        "guidance": metadata.get("guidance") or extracted.get("guidance", extracted.get("mflux_guidance", "")),
+                        "width": metadata.get("width") or extracted.get("width", extracted.get("mflux_width", "")),
+                        "height": metadata.get("height") or extracted.get("height", extracted.get("mflux_height", "")),
+                        "lora_files": metadata.get("lora_files") or extracted.get("lora_files", extracted.get("mflux_lora_files", [])),
+                        "lora_scales": metadata.get("lora_scales") or extracted.get("lora_scales", extracted.get("mflux_lora_scales", [])),
+                        "generation_time": metadata.get("generation_time") or extracted.get("generation_time", ""),
+                        "generation_duration": metadata.get("generation_duration") or extracted.get("generation_duration", ""),
+                        "low_ram_mode": extracted.get("low_ram_mode", False),
+                    })
 
             # Get image dimensions if not in metadata
             if not metadata.get("width") or not metadata.get("height"):
@@ -300,7 +326,7 @@ class OutputViewerManager:
         return items
 
     def delete_output(self, filepath: str) -> bool:
-        """Delete an output file and its thumbnail."""
+        """Delete an output file, its thumbnail, and companion JSON file."""
         try:
             file_path = Path(filepath)
 
@@ -309,7 +335,12 @@ class OutputViewerManager:
             if thumb_path.exists():
                 thumb_path.unlink()
 
-            # Delete the file
+            # Delete companion JSON file if exists
+            json_path = file_path.with_suffix('.json')
+            if json_path.exists():
+                json_path.unlink()
+
+            # Delete the image file
             if file_path.exists():
                 file_path.unlink()
 
