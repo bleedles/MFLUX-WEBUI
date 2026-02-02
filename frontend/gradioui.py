@@ -35,6 +35,7 @@ from frontend.components.fibo import create_fibo_tab
 from frontend.components.z_image_turbo import create_z_image_turbo_tab
 from frontend.components.flux2_generate import create_flux2_generate_tab
 from frontend.components.flux2_edit import create_flux2_edit_tab
+from frontend.components.output_viewer import create_output_viewer_tab
 
 # Backend imports
 from backend.model_manager import (
@@ -233,6 +234,12 @@ def create_ui():
                     lora_files_icl=lora_files_icl,
                     model_icl=model_icl
                 )
+
+            # Output Viewer tab
+            output_viewer_components = create_output_viewer_tab()
+
+        # Note: Initial output loading is now handled by the Refresh button click in the Output Viewer tab
+        # The demo.load() approach was causing Gradio queue issues
 
         return demo, theme, custom_css
 
