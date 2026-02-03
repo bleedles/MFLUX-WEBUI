@@ -12,6 +12,7 @@
 5. [Utility & Support Features](#utility--support-features)
 6. [Frontend Components](#frontend-components)
 7. [Prompt Management](#prompt-management)
+8. [Planned Features (TODO)](#planned-features-todo)
 
 ---
 
@@ -738,6 +739,96 @@ prompts/
 
 ---
 
+## Planned Features (TODO)
+
+### Session Persistence
+**Description**: Maintain UI state across page refreshes and browser sessions  
+**Status**: Not yet implemented  
+**Proposed Implementation**:
+- Save current tab, prompts, settings, and other UI state to browser localStorage
+- Restore state automatically on page load
+- Persist state across browser close/reopen
+- Include:
+  - Active tab selection
+  - Prompt text and parameters for each tab
+  - Model and LoRA selections
+  - Generation settings (steps, guidance, size, etc.)
+  - LLM settings and preferences
+  - Last used configurations per feature
+
+**Proposed Files**:
+- `frontend/session_manager.py` - Session state management
+- `frontend/components/` - Update each component to save/restore state
+- Browser localStorage integration via Gradio custom JS
+
+**Key Functions** (Proposed):
+- `save_session_state()` - Save current UI state to localStorage
+- `restore_session_state()` - Load saved state on startup
+- `clear_session_state()` - Clear saved session data
+- Per-tab state management: `save_tab_state(tab_name, state_dict)`
+
+---
+
+### Job Queue System
+**Description**: Queue system for managing multiple generation jobs with sequential processing
+**Status**: Core implementation complete. Queue buttons added to 2/19 tabs (easy_mflux, flux2_generate).
+
+**Implementation**:
+- Add jobs to a queue instead of immediate execution
+- Process queue sequentially to avoid memory/resource conflicts
+- View all queued jobs with status (pending, running, completed, failed)
+- Reorder, pause, resume, or cancel jobs in queue
+- Queue persistence across sessions (configs/job_queue.json)
+- Priority levels for jobs (LOW, NORMAL, HIGH, URGENT)
+- Estimated time remaining for queue
+
+**UX/Component**:
+- Job Queue sidebar on right side of UI (collapsed by default)
+- Accessible from any tab via collapsible accordion
+- Shows active job with progress, pending jobs list, job history
+- Supports pause/resume/cancel/clear operations
+- Queue badge shows pending count
+
+**Backend Files**:
+- `backend/job_types.py` - Job dataclass, JobStatus/JobType/JobPriority enums
+- `backend/job_queue_manager.py` - Queue management singleton with persistence (`JobQueueManager`, `get_job_queue_manager()`, `add_job_to_queue()`)
+- `backend/job_executor.py` - Background worker thread (`JobExecutor`, `start_job_executor()`)
+
+**Frontend Files**:
+- `frontend/components/job_queue_sidebar.py` - Sidebar UI component (`create_job_queue_sidebar()`)
+- `frontend/components/queue_button_helper.py` - Helper functions for "Add to Queue" buttons
+- `frontend/gradioui.py` - Modified layout to include sidebar
+
+**Key Classes**:
+- `Job` - Individual job data class with parameters, status, progress, timestamps
+- `JobQueueManager` - Thread-safe queue operations with JSON persistence
+- `JobExecutor` - Background daemon thread for sequential job execution
+- `JobStatus` - Enum: PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+- `JobType` - Enum for all generation types (TEXT_TO_IMAGE_SIMPLE, FLUX2_GENERATE, etc.)
+- `JobPriority` - Enum: LOW, NORMAL, HIGH, URGENT
+
+**Key Functions**:
+- `add_job_to_queue(job_type, parameters, priority)` - Add generation job to queue
+- `get_queue_status_for_ui()` - Get formatted queue state for display
+- `manager.reorder_jobs(job_ids)` - Change job order in queue
+- `manager.cancel_job(job_id)` - Cancel pending or active job
+- `manager.pause_queue()` / `manager.resume_queue()` - Queue control
+- `manager.get_next_job()` - Get next job for execution
+- `manager.update_job_progress()` - Update active job progress
+
+**Tabs with "Add to Queue" Button**:
+- ✅ MFLUX Easy (`easy_mflux.py`)
+- ✅ Flux2 Klein (`flux2_generate.py`)
+- ⏳ Remaining tabs need queue button added following same pattern
+
+**To Add Queue Button to a Tab**:
+1. Import `from frontend.components.queue_button_helper import add_job_generic` (or specific helper)
+2. Add button next to Generate: `add_to_queue_btn = gr.Button("📋 Add to Queue", variant="secondary")`
+3. Add status display: `queue_status = gr.Textbox(label="Queue Status", visible=False)`
+4. Wire click handler that calls `add_job_to_queue()` with appropriate JobType and parameters
+
+---
+
 ## Quick Reference: Common Tasks
 
 ### Working on Text-to-Image Generation
@@ -791,6 +882,21 @@ prompts/
 2. `backend/custom_train.py` - Training logic
 3. `backend/custom_trainer.py` - Trainer implementation
 4. `frontend/components/dreambooth_fine_tuning.py` - UI
+
+### Working on Planned Features
+
+#### Session Persistence
+**Files to Create**:
+1. `frontend/session_manager.py` - Session state management
+2. Update all `frontend/components/*.py` - Add save/restore for each tab
+3. Add localStorage integration via Gradio custom JS components
+
+#### Job Queue System
+**Files to Create**:
+1. `backend/job_queue_manager.py` - Queue management and persistence
+2. `backend/job_executor.py` - Sequential job execution worker
+3. `frontend/components/job_queue.py` - Queue viewer UI
+4. Update all `backend/*_manager.py` - Add queue mode to generation functions
 
 ### Working on API
 **Files to Read**:
@@ -898,11 +1004,12 @@ MFLUX-WEBUI/
 
 ## Version Information
 
-**Document Version**: 1.1
-**MFLUX WebUI Version**: 0.15.4
+**Document Version**: 1.2  
+**MFLUX WebUI Version**: 0.15.4  
 **Last Updated**: 2026-02-02
 
 ### Changelog
+- v1.2: Added Planned Features (TODO) section documenting Session Persistence and Job Queue System
 - v1.1: Added Output Viewer feature documentation
 
 ---

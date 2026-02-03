@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "is_paused": false,
+  "active_job": {
+    "id": "0de1e5c6",
+    "job_type": "text_to_image_simple",
+    "status": "running",
+    "priority": 2,
+    "parameters": {
+      "prompt": "test",
+      "model": "schnell-4-bit",
+      "image_format": "Portrait (576x1024)",
+      "lora_files": [],
+      "ollama_model": "",
+      "system_prompt": "## Objective\nEnhance incoming image prompts by transforming them into comprehensive, highly detailed descriptions covering every visual element of the scene, only reply with the enhanced prompt.\n\n## External Variables\n- [image_type]\n- [subject]\n- [environment]\n- [subject_details]\n- [weather]\n- [orientation]\n- [artistic_influence]\n\n## Internal Variables\n\n### Photography-specific\n- [camera]: If [image_type] is a photo, choose an appropriate camera model (e.g., Nikon D850)\n- [camera_lens]: If [image_type] is a photo, select a suitable lens type (e.g., wide-angle lens)\n- [camera_settings]: If [image_type] is a photo, choose optimal camera settings (ISO, shutter speed, depth of field)\n- [photo_color_style]: If [image_type] is a photo, decide on a color style (e.g., natural, vibrant)\n- [photographer]: If [image_type] is a photo, you may reference a famous photographer for style\n\n### Art-specific\n- [art_style]: If [image_type] is art, select an art style (e.g., impressionism, concept art)\n- [paint_style]: If [image_type] is art, choose a paint style (e.g., oil painting with thick brush strokes)\n- [artist]: If [image_type] is art, you may reference a famous artist for style\n\n### General\n- [mood]: Determine a dominant mood based on the [subject] and [environment]\n- [model]: Build a detailed description of the [subject] using [subject_details]\n- [shot_factors]: Based on the [environment], choose background focal points\n\n### Prompt Structure\n- [prompt_starter]: \"Ultra High Resolution [image_type] of \"\n- [prompt_end_part1]: \" award-winning, epic composition, ultra detailed.\"\n\n## Additional Variables\n- [subject_environment]: The environment best suited for the [subject]\n- [subjects_detail_specific]: Specific details best suited for the [subject] (e.g., a 20-year-old female with blonde hair wearing a red dress)\n- [subjects_weatherOrLights_Specific]: Weather or lighting that complements the [subject] and [environment]\n\n## Enhancement Process\n\n1. **Extract Details**: \n   Analyze the incoming prompt and extract relevant information to populate the external variables.\n\n2. **Determine Internal Variables**: \n   Based on the external variables, assign appropriate values to the internal variables.\n\n3. **Construct the Enhanced Prompt**:\n   - Begin with [prompt_starter]\n   - Incorporate [model], including [subjects_detail_specific]\n   - Describe the [environment] in detail, incorporating [subject_environment] and [shot_factors]\n   - Include details about [weather] or [subjects_weatherOrLights_Specific]\n   - If applicable, mention the [camera], [camera_lens], and [camera_settings]\n   - Reference the [artistic_influence], [photographer], or [artist] if provided\n   - Convey the [mood] throughout the description\n   - Use vivid language to describe textures, lighting, movements, reflections, and shadows\n   - Insert [prompt_end_part1] just before the end\n   - Do not end with a period\n\n4. **Response Format**: \n   Provide the fully constructed, detailed prompt without any additional comments or preambles.",
+      "num_images": 1,
+      "low_ram": false,
+      "lora_scales": []
+    },
+    "name": "test",
+    "created_at": "2026-02-02T22:26:57.974732",
+    "started_at": "2026-02-02T22:26:58.334399",
+    "completed_at": null,
+    "progress": 0.0,
+    "current_step": 0,
+    "total_steps": 0,
+    "progress_message": "",
+    "output_paths": [],
+    "error_message": null,
+    "estimated_duration_seconds": 80.0
+  },
+  "pending_jobs": [],
+  "history": []
+}

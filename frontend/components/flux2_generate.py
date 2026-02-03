@@ -3,6 +3,7 @@ import gradio as gr
 from backend.flux2_manager import generate_flux2_image_gradio
 from backend.lora_manager import get_lora_choices, update_lora_scales, MAX_LORAS
 from backend.model_manager import get_flux2_models
+from frontend.components.queue_button_helper import add_job_flux2_generate
 
 
 def create_flux2_generate_tab():
@@ -57,10 +58,14 @@ def create_flux2_generate_tab():
             )
 
         metadata = gr.Checkbox(label="Export Metadata", value=True)
-        run_button = gr.Button("Generate Flux2 Image", variant="primary")
+
+        with gr.Row():
+            run_button = gr.Button("Generate Flux2 Image", variant="primary", scale=3)
+            add_to_queue_btn = gr.Button("📋 Add to Queue", variant="secondary", scale=1)
 
         output_gallery = gr.Gallery(label="Generated Images", columns=[2], height=400)
         status = gr.Textbox(label="Status", interactive=False)
+        queue_status = gr.Textbox(label="Queue Status", value="", interactive=False, visible=False)
 
         def _run_flux2(
             prompt_val,
@@ -109,6 +114,52 @@ def create_flux2_generate_tab():
             ],
             outputs=[output_gallery, status, prompt],
             concurrency_id="flux2_generate_queue",
+        )
+
+        # Add to Queue handler
+        def _add_to_queue(
+            prompt_val,
+            model_val,
+            seed_val,
+            width_val,
+            height_val,
+            steps_val,
+            lora_files_val,
+            *scale_and_meta,
+        ):
+            metadata_val = scale_and_meta[-2]
+            num_images_val = scale_and_meta[-1]
+            scale_vals = list(scale_and_meta[:-2])
+
+            result = add_job_flux2_generate(
+                prompt=prompt_val,
+                model_name=model_val,
+                seed=int(seed_val) if seed_val else None,
+                width=int(width_val),
+                height=int(height_val),
+                steps=int(steps_val),
+                lora_files=lora_files_val,
+                lora_scales=scale_vals,
+                metadata=metadata_val,
+                num_images=int(num_images_val),
+            )
+            return gr.update(value=result, visible=True)
+
+        add_to_queue_btn.click(
+            fn=_add_to_queue,
+            inputs=[
+                prompt,
+                model,
+                seed,
+                width,
+                height,
+                steps,
+                lora_files,
+                *lora_scale_sliders,
+                metadata,
+                num_images,
+            ],
+            outputs=[queue_status],
         )
 
     return {"prompt": prompt, "gallery": output_gallery, "status": status}

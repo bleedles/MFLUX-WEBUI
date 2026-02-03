@@ -106,7 +106,7 @@ if __name__ == "__main__":
             print(f"[Setup] Invalid {name} value: {value!r}. Using default.")
             return None
 
-    server_name = os.environ.get("MFLUX_SERVER_NAME", "127.0.0.1")
+    server_name = os.environ.get("MFLUX_SERVER_NAME", "0.0.0.0")
     server_port = _parse_env_port("MFLUX_SERVER_PORT")
     if server_port is None:
         server_port = _parse_env_port("PORT")

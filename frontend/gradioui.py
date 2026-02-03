@@ -36,6 +36,7 @@ from frontend.components.z_image_turbo import create_z_image_turbo_tab
 from frontend.components.flux2_generate import create_flux2_generate_tab
 from frontend.components.flux2_edit import create_flux2_edit_tab
 from frontend.components.output_viewer import create_output_viewer_tab
+from frontend.components.job_queue_sidebar import create_job_queue_sidebar
 
 # Backend imports
 from backend.model_manager import (
@@ -104,6 +105,7 @@ from backend.post_processing import (
     scale_dimensions,
     update_guidance_visibility
 )
+from backend.job_executor import start_job_executor, stop_job_executor
 
 def create_ui():
     """
@@ -144,102 +146,118 @@ def create_ui():
         fill_width=True,
         analytics_enabled=False,
     ) as demo:
-        with gr.Tabs():
-            with gr.TabItem("MFLUX Easy", id=0):
-                easy_mflux_components = create_easy_mflux_tab()
-                lora_files_simple = easy_mflux_components['lora_files']
-                model_simple = easy_mflux_components['model']
+        # Main layout: Tabs on left, Job Queue sidebar on right
+        with gr.Row():
+            # Main content area with all tabs
+            with gr.Column(scale=5):
+                with gr.Tabs():
+                    with gr.TabItem("MFLUX Easy", id=0):
+                        easy_mflux_components = create_easy_mflux_tab()
+                        lora_files_simple = easy_mflux_components['lora_files']
+                        model_simple = easy_mflux_components['model']
 
-            # Qwen tabs directly after MFLUX Easy
-            qwen_image_components = create_qwen_image_tab()
-            qwen_edit_components = create_qwen_edit_tab()
+                    # Qwen tabs directly after MFLUX Easy
+                    qwen_image_components = create_qwen_image_tab()
+                    qwen_edit_components = create_qwen_edit_tab()
 
-            # New model tabs
-            fibo_components = create_fibo_tab()
-            z_image_components = create_z_image_turbo_tab()
-            flux2_generate_components = create_flux2_generate_tab()
-            flux2_edit_components = create_flux2_edit_tab()
+                    # New model tabs
+                    fibo_components = create_fibo_tab()
+                    z_image_components = create_z_image_turbo_tab()
+                    flux2_generate_components = create_flux2_generate_tab()
+                    flux2_edit_components = create_flux2_edit_tab()
 
-            with gr.TabItem("🎨 Canvas"):
-                canvas_components = create_canvas_tab()
-                
-            with gr.TabItem("Advanced Generate"):
-                advanced_generate_components = create_advanced_generate_tab()
-                lora_files = advanced_generate_components['lora_files']
-                model = advanced_generate_components['model']
+                    with gr.TabItem("🎨 Canvas"):
+                        canvas_components = create_canvas_tab()
 
-            with gr.TabItem("ControlNet"):
-                controlnet_components = create_controlnet_tab()
-                lora_files_cn = controlnet_components['lora_files']
-                model_cn = controlnet_components['model']
+                    with gr.TabItem("Advanced Generate"):
+                        advanced_generate_components = create_advanced_generate_tab()
+                        lora_files = advanced_generate_components['lora_files']
+                        model = advanced_generate_components['model']
 
-            with gr.TabItem("Image-to-Image"):
-                image_to_image_components = create_image_to_image_tab()
-                lora_files_i2i = image_to_image_components['lora_files']
-                model_i2i = image_to_image_components['model']
-                
-            with gr.TabItem("In-Context LoRA"):
-                in_context_lora_components = create_in_context_lora_tab()
-                lora_files_icl = in_context_lora_components['lora_files']
-                model_icl = in_context_lora_components['model']
+                    with gr.TabItem("ControlNet"):
+                        controlnet_components = create_controlnet_tab()
+                        lora_files_cn = controlnet_components['lora_files']
+                        model_cn = controlnet_components['model']
 
-            with gr.TabItem("Dreambooth Fine-Tuning"):
-                dreambooth_components = create_dreambooth_fine_tuning_tab()
+                    with gr.TabItem("Image-to-Image"):
+                        image_to_image_components = create_image_to_image_tab()
+                        lora_files_i2i = image_to_image_components['lora_files']
+                        model_i2i = image_to_image_components['model']
 
-            # --- New feature tabs ---
-            with gr.TabItem("Fill"):
-                fill_components = create_fill_tab()
+                    with gr.TabItem("In-Context LoRA"):
+                        in_context_lora_components = create_in_context_lora_tab()
+                        lora_files_icl = in_context_lora_components['lora_files']
+                        model_icl = in_context_lora_components['model']
 
-            with gr.TabItem("Depth"):
-                depth_components = create_depth_tab()
+                    with gr.TabItem("Dreambooth Fine-Tuning"):
+                        dreambooth_components = create_dreambooth_fine_tuning_tab()
 
-            with gr.TabItem("Redux"):
-                redux_components = create_redux_tab()
+                    # --- New feature tabs ---
+                    with gr.TabItem("Fill"):
+                        fill_components = create_fill_tab()
 
-            with gr.TabItem("Upscale"):
-                upscale_components = create_upscale_tab()
+                    with gr.TabItem("Depth"):
+                        depth_components = create_depth_tab()
 
-            with gr.TabItem("Concept Attention"):
-                concept_attention_components = create_concept_attention_tab()
+                    with gr.TabItem("Redux"):
+                        redux_components = create_redux_tab()
 
-            with gr.TabItem("CatVTON"):
-                catvton_components = create_catvton_tab()
+                    with gr.TabItem("Upscale"):
+                        upscale_components = create_upscale_tab()
 
-            with gr.TabItem("IC-Edit"):
-                ic_edit_components = create_ic_edit_tab()
+                    with gr.TabItem("Concept Attention"):
+                        concept_attention_components = create_concept_attention_tab()
 
-            with gr.TabItem("Kontext"):
-                kontext_components = create_kontext_tab()
+                    with gr.TabItem("CatVTON"):
+                        catvton_components = create_catvton_tab()
 
-            # --- Utility and Management tabs ---
-            with gr.TabItem("Auto Seeds"):
-                auto_seeds_components = create_auto_seeds_tab()
+                    with gr.TabItem("IC-Edit"):
+                        ic_edit_components = create_ic_edit_tab()
 
-            with gr.TabItem("Dynamic Prompts"):
-                dynamic_prompts_components = create_dynamic_prompts_tab()
+                    with gr.TabItem("Kontext"):
+                        kontext_components = create_kontext_tab()
 
-            with gr.TabItem("Configuration"):
-                config_components = create_config_tab()
+                    # --- Utility and Management tabs ---
+                    with gr.TabItem("Auto Seeds"):
+                        auto_seeds_components = create_auto_seeds_tab()
 
-            with gr.TabItem("Model & LoRA Management"):
-                model_lora_management_components = create_model_lora_management_tab(
-                    model_simple=model_simple,
-                    model=model,
-                    model_cn=model_cn,
-                    model_i2i=model_i2i,
-                    lora_files_simple=lora_files_simple,
-                    lora_files=lora_files,
-                    lora_files_cn=lora_files_cn,
-                    lora_files_i2i=lora_files_i2i,
-                    lora_files_icl=lora_files_icl,
-                    model_icl=model_icl
-                )
+                    with gr.TabItem("Dynamic Prompts"):
+                        dynamic_prompts_components = create_dynamic_prompts_tab()
 
-            # Output Viewer tab
-            output_viewer_components = create_output_viewer_tab()
+                    with gr.TabItem("Configuration"):
+                        config_components = create_config_tab()
+
+                    with gr.TabItem("Model & LoRA Management"):
+                        model_lora_management_components = create_model_lora_management_tab(
+                            model_simple=model_simple,
+                            model=model,
+                            model_cn=model_cn,
+                            model_i2i=model_i2i,
+                            lora_files_simple=lora_files_simple,
+                            lora_files=lora_files,
+                            lora_files_cn=lora_files_cn,
+                            lora_files_i2i=lora_files_i2i,
+                            lora_files_icl=lora_files_icl,
+                            model_icl=model_icl
+                        )
+
+                    # Output Viewer tab
+                    output_viewer_components = create_output_viewer_tab()
+
+            # Job Queue Sidebar (right side, collapsed by default)
+            job_queue_sidebar_components = create_job_queue_sidebar()
 
         # Note: Initial output loading is now handled by the Refresh button click in the Output Viewer tab
         # The demo.load() approach was causing Gradio queue issues
+
+        # Start the job executor when the demo loads
+        def on_demo_load():
+            start_job_executor()
+            return None
+
+        # Wire up demo load to start executor (runs once on page load)
+        # Note: We start executor but don't return any outputs
+        demo.load(fn=on_demo_load, inputs=None, outputs=None)
 
         return demo, theme, custom_css
 

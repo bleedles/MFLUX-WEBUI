@@ -10,6 +10,7 @@ from backend.lora_manager import (
 from backend.prompts_manager import enhance_prompt
 from backend.flux_manager import simple_generate_image
 from frontend.components.llmsettings import create_llm_settings
+from frontend.components.queue_button_helper import add_job_simple
 
 def create_easy_mflux_tab():
     """Create the MFLUX Easy tab interface"""
@@ -79,7 +80,11 @@ def create_easy_mflux_tab():
                 num_images_simple = gr.Number(label="Number of Images", value=1, precision=0)
                 low_ram_simple = gr.Checkbox(label="Low RAM Mode", value=False)
 
-            generate_button_simple = gr.Button("Generate Image", variant='primary')
+            with gr.Row():
+                generate_button_simple = gr.Button("Generate Image", variant='primary', scale=3)
+                add_to_queue_btn_simple = gr.Button("📋 Add to Queue", variant='secondary', scale=1)
+
+            queue_status_simple = gr.Textbox(label="Queue Status", value="", interactive=False, visible=False)
         
         with gr.Column():
             output_gallery_simple = gr.Gallery(
@@ -146,6 +151,46 @@ def create_easy_mflux_tab():
                 num_images_simple
             ],
             outputs=[output_gallery_simple, output_filename_simple, prompt_simple]
+        )
+
+        # Add to Queue button handler
+        def add_to_queue_wrapper(*args):
+            prompt, model, image_format, lora_files, llm_type, llm_model, system_prompt, low_ram, *lora_scales_and_num = args
+            num_images = lora_scales_and_num[-1]
+            lora_scales = lora_scales_and_num[:-1]
+
+            # Process LoRA files
+            valid_loras = process_lora_files(lora_files) if lora_files else None
+            valid_scales = lora_scales[:len(valid_loras)] if valid_loras else []
+
+            result = add_job_simple(
+                prompt=prompt,
+                model=model,
+                image_format=image_format,
+                lora_files=valid_loras,
+                ollama_model=llm_model if llm_type == "Ollama" else None,
+                system_prompt=system_prompt,
+                num_images=num_images,
+                low_ram=low_ram,
+                *valid_scales,
+            )
+            return gr.update(value=result, visible=True)
+
+        add_to_queue_btn_simple.click(
+            fn=add_to_queue_wrapper,
+            inputs=[
+                prompt_simple,
+                model_simple,
+                image_format,
+                lora_files_simple,
+                llm_components_simple[0],  # llm_type
+                llm_components_simple[1],  # ollama_model
+                llm_components_simple[2],  # system_prompt
+                low_ram_simple,
+                *lora_scales_simple,
+                num_images_simple
+            ],
+            outputs=[queue_status_simple]
         )
 
         return {
